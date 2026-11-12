@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6D8C3">
+<title>Secret Santa</title>
+<link rel="icon" href="img/hat.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  @font-face{
+    font-family:"Internet Friends";
+    src:url("fonts/internet-friends.woff2") format("woff2");
+    font-display:swap;
+  }
+  :root{
+    --bg:#E6D8C3;
+    --red:#A82020;
+    --font:"Internet Friends","Nunito",system-ui,sans-serif;
+    --body:"Nunito",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg)}
+  body{
+    font-family:var(--body);font-weight:700;color:var(--red);
+    padding:calc(env(safe-area-inset-top) + 18px) 20px calc(env(safe-area-inset-bottom) + 28px);
+    overflow-x:hidden;
+  }
+  /* falling snow: tiny red dots, very soft */
+  .snow{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .snow span{position:absolute;top:-12px;border-radius:50%;background:var(--red);opacity:.16;animation:fall linear infinite}
+  @keyframes fall{to{transform:translateY(110vh)}}
+
+  main{position:relative;z-index:1;max-width:420px;margin:0 auto}
+  header{text-align:center;margin-bottom:14px}
+  .hat{width:96px;height:auto;display:inline-block;transform-origin:60% 90%;animation:wobble 3s ease-in-out infinite}
+  @keyframes wobble{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}55%{transform:rotate(5deg)}}
+  h1{font-family:var(--font);font-weight:400;font-size:46px;line-height:1;margin:4px 0 2px;letter-spacing:.5px}
+  .sub{font-family:var(--font);font-size:21px;margin:0;opacity:.85}
+
+  .card{border:2.5px solid var(--red);border-radius:28px;padding:22px 20px 20px;margin-bottom:16px;position:relative}
+  h2{font-family:var(--font);font-weight:400;font-size:32px;line-height:1.1;margin:0 0 10px;text-align:center}
+  p{margin:0 0 12px;line-height:1.45;font-size:16px}
+  .center{text-align:center}
+  label{display:block;font-family:var(--font);font-size:20px;margin:12px 0 6px}
+  input,textarea{width:100%;font:inherit;font-size:18px;color:var(--red);background:transparent;
+    border:2px solid var(--red);border-radius:18px;padding:12px 14px;outline:none}
+  input::placeholder,textarea::placeholder{color:var(--red);opacity:.45}
+  input:focus,textarea:focus{border-width:3px;padding:11px 13px}
+  textarea{min-height:170px;resize:vertical;line-height:1.55}
+
+  .btn{display:block;width:100%;font-family:var(--font);font-size:24px;border:2.5px solid var(--red);border-radius:20px;
+    padding:12px 14px 10px;margin-top:16px;cursor:pointer;color:var(--bg);background:var(--red);
+    box-shadow:0 5px 0 rgba(168,32,32,.35);transition:transform .08s, box-shadow .08s}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(168,32,32,.35)}
+  .btn.outline{background:transparent;color:var(--red);box-shadow:none}
+  .btn.link{background:transparent;color:var(--red);border:none;box-shadow:none;font-size:20px;padding:6px;margin-top:8px;opacity:.8}
+
+  .hint{font-size:14px;opacity:.75}
+  .err{font-size:15px;min-height:1.3em;margin-top:8px}
+  .hidden{display:none!important}
+  details summary{cursor:pointer;font-size:14px;opacity:.8;margin-top:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{border:2px solid var(--red);border-radius:999px;padding:2px 12px;font-size:15px}
+  .steps{padding-left:20px;margin:4px 0 0;font-size:15px}
+  .steps li{margin-bottom:6px}
+
+  /* screen 3 santa */
+  .santa-done{display:block;width:150px;height:auto;margin:-4px auto 6px;animation:hop .9s cubic-bezier(.3,1.6,.5,1) 1}
+  @keyframes hop{0%{transform:translateY(30px) scale(.6);opacity:0}100%{transform:none;opacity:1}}
+
+  /* screen 6 gift */
+  .stage{position:relative;width:220px;height:170px;margin:4px auto 0;cursor:pointer;transition:height .5s ease}
+  .stage.open{height:250px}
+  .stage .santa{position:absolute;left:50%;bottom:34px;width:150px;margin-left:-75px;z-index:1;
+    transform:translateY(130px) scale(.35);opacity:0;transition:transform .8s cubic-bezier(.3,1.5,.5,1) .15s, opacity .2s .15s}
+  .box{position:absolute;left:40px;bottom:0;width:140px;height:92px;background:var(--red);border-radius:12px;z-index:2}
+  .box::before{content:"";position:absolute;left:58px;top:0;width:24px;height:100%;background:var(--bg)}
+  .lid{position:absolute;left:30px;bottom:88px;width:160px;height:36px;background:var(--red);border-radius:10px;z-index:3;
+    transition:transform .7s ease-out, opacity .7s ease-out}
+  .lid::before{content:"";position:absolute;left:68px;top:0;width:24px;height:100%;background:var(--bg)}
+  .bow{position:absolute;left:50px;top:-34px;width:60px;height:38px}
+  .stage.idle{animation:wiggle 1.8s ease-in-out infinite}
+  @keyframes wiggle{0%,100%{transform:rotate(0)}8%{transform:rotate(-5deg)}16%{transform:rotate(5deg)}24%{transform:rotate(0)}}
+  .stage.open .lid{transform:translate(-130px,-140px) rotate(-45deg);opacity:0}
+  .stage.open .santa{transform:translateY(-16px) scale(1);opacity:1}
+  .reveal{opacity:0;transform:translateY(10px);transition:all .5s .55s;text-align:center}
+  .reveal.show{opacity:1;transform:none}
+  .giftee{font-family:var(--font),var(--body);font-size:44px;line-height:1.1;margin:2px 0 8px;word-break:break-word}
+  .confetti{position:fixed;top:-12px;width:8px;height:13px;border-radius:3px;background:var(--red);z-index:5;pointer-events:none;animation:conf 2.3s ease-in forwards}
+  @keyframes conf{to{transform:translateY(105vh) rotate(720deg)}}
+
+  .people{list-style:none;padding:0;margin:14px 0 4px;text-align:left}
+  .people li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:2px dashed rgba(168,32,32,.3)}
+  .people li:last-child{border-bottom:none}
+  .people .who{font-family:var(--font),var(--body);font-size:22px;word-break:break-word}
+  .mini{font-family:var(--font);font-size:18px;border:2px solid var(--red);border-radius:14px;padding:6px 12px 4px;
+    background:var(--red);color:var(--bg);cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .mini.sent{background:transparent;color:var(--red)}
+  .warn{border:2px dashed var(--red);border-radius:16px;padding:10px 12px;font-size:14px;line-height:1.45;margin:4px 0 0;text-align:left}
+  .progress{font-size:14px;opacity:.8;margin-top:6px}
+  footer{text-align:center;font-family:var(--font);font-size:17px;margin-top:6px;opacity:.8}
+</style>
+</head>
+<body>
+<div class="snow" id="snow"></div>
+<main>
+  <header>
+    <img class="hat" src="img/hat.png" alt="">
+    <h1>Secret Santa</h1>
+    <p class="sub" id="groupTitle">Who are you gifting?</p>
+  </header>
+
+  <!-- 1. HOME -->
+  <section id="home">
+    <div class="card center">
+      <h2>Ho ho hoo~</h2>
+      <button class="btn" onclick="show('create')">Start a group</button>
+      <p class="hint" style="margin:14px 0 0">Got a link from your group? Just open it!</p>
+    </div>
+  </section>
+
+  <!-- 2. CREATE -->
+  <section id="create" class="hidden">
+    <div class="card">
+      <h2>Create Santa group</h2>
+      <label for="gname">Group name</label>
+      <input id="gname" placeholder="e.g. Winx Club" maxlength="40">
+      <label for="names">Members <span class="hint" style="font-family:var(--body)">(one name per line)</span></label>
+      <textarea id="names" placeholder="Bloom&#10;Stella&#10;Flora&#10;Musa"></textarea>
+      <div class="err" id="createErr"></div>
+      <button class="btn" onclick="draw()">Draw names!</button>
+      <button class="btn link" onclick="show('home')">← Back</button>
+    </div>
+  </section>
+
+  <!-- 3. DONE -->
+  <section id="done" class="hidden">
+    <div class="card center">
+      <img class="santa-done" id="santaDone" src="img/santa.png" alt="">
+      <h2>All drawn!</h2>
+      <p>Nobody can see the results, not even you. Now send the link to your group.</p>
+      <div id="shareDirect" class="hidden">
+        <button class="btn" onclick="copyGroupLink(this)">Copy group link</button>
+      </div>
+      <div id="shareIframe" class="hidden" style="text-align:left">
+        <ol class="steps">
+          <li>This page's link now holds your group. Tap <b>Share → Copy link</b> at the top to get it.</li>
+          <li>Send it to your group chat. Everyone opens it on their own phone.</li>
+        </ol>
+      </div>
+      <button class="btn outline" onclick="show('lookup')">See my match</button>
+    </div>
+  </section>
+
+  <!-- 5. LOOKUP -->
+  <section id="lookup" class="hidden">
+    <div class="card">
+      <h2>What's your name?</h2>
+      <p class="center">Type your name exactly as it is in the group. Don't let anyone peek at your screen!</p>
+      <input id="myname" placeholder="Your name" autocomplete="off" onkeydown="if(event.key==='Enter')findMe()">
+      <div class="err" id="lookErr"></div>
+      <button class="btn" onclick="findMe()">Open my gift</button>
+      <details>
+        <summary>See group members</summary>
+        <div class="chips" id="memberChips"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- 5b. CONFIRM -->
+  <section id="confirm" class="hidden">
+    <div class="card center">
+      <h2 id="confirmName">Are you …?</h2>
+      <p>Once you open your gift, this phone will only ever show <b>your</b> match for this group.</p>
+      <button class="btn" onclick="confirmMe()">Yes, that's me!</button>
+      <button class="btn link" onclick="show('lookup')">← No, go back</button>
+    </div>
+  </section>
+
+  <!-- 6. RESULT -->
+  <section id="result" class="hidden">
+    <div class="card">
+      <h2 id="hiName">Hi!</h2>
+      <p class="center" id="tapHint">Tap the gift to open it</p>
+      <div class="stage idle" id="stage" onclick="openGift()">
+        <img class="santa" src="img/santa.png" alt="">
+        <div class="lid">
+          <svg class="bow" viewBox="0 0 60 38" aria-hidden="true">
+            <path d="M30 30 C18 6 2 4 4 18 C6 30 22 30 30 30 Z" fill="#A82020"/>
+            <path d="M30 30 C42 6 58 4 56 18 C54 30 38 30 30 30 Z" fill="#A82020"/>
+            <circle cx="30" cy="30" r="6" fill="#A82020" stroke="#E6D8C3" stroke-width="3"/>
+          </svg>
+        </div>
+        <div class="box"></div>
+      </div>
+      <div class="reveal" id="reveal">
+        <p style="margin:6px 0 0">You're the Secret Santa for…</p>
+        <div class="giftee" id="giftee"></div>
+        <p class="hint">Keep it secret until gift day</p>
+      </div>
+      <button class="btn" onclick="closeResult()">Done, hide it</button>
+    </div>
+  </section>
+
+  <!-- broken link -->
+  <section id="bad" class="hidden">
+    <div class="card center">
+      <h2>Oops!</h2>
+      <p>This link looks broken. Ask your organizer to send it again.</p>
+    </div>
+  </section>
+
+  <footer>Made with ♥</footer>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const sections = ["home","create","done","lookup","confirm","result","bad"];
+  function show(id){
+    sections.forEach(s => $(s).classList.toggle("hidden", s!==id));
+    window.scrollTo(0,0);
+    if(id==="lookup"){ $("myname").value=""; $("lookErr").textContent=""; }
+    if(id==="done"){ const s=$("santaDone"); s.style.animation="none"; void s.offsetWidth; s.style.animation=""; }
+  }
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[đĐ]/g,"d")
+                     .toLowerCase().replace(/\s+/g," ").trim();
+
+  // snow
+  (function(){
+    const box=$("snow");
+    for(let i=0;i<22;i++){
+      const s=document.createElement("span"), d=3+Math.random()*5;
+      s.style.width=s.style.height=d+"px";
+      s.style.left=Math.random()*100+"%";
+      s.style.animationDuration=(8+Math.random()*10)+"s";
+      s.style.animationDelay=(-Math.random()*18)+"s";
+      box.appendChild(s);
+    }
+  })();
+
+  // ---------- encoding (obfuscated, URL-hash safe: a-z 2-7) ----------
+  const B32="abcdefghijklmnopqrstuvwxyz234567", PREFIX="ss-";
+  function b32enc(bytes){ let out="",bits=0,val=0;
+    for(const b of bytes){ val=(val<<8)|b; bits+=8; while(bits>=5){ out+=B32[(val>>>(bits-5))&31]; bits-=5; } }
+    if(bits>0) out+=B32[(val<<(5-bits))&31]; return out; }
+  function b32dec(str){ const out=[]; let bits=0,val=0;
+    for(const c of str){ const i=B32.indexOf(c); if(i<0) throw 0; val=(val<<5)|i; bits+=5; if(bits>=8){ out.push((val>>>(bits-8))&255); bits-=8; } }
+    return new Uint8Array(out); }
+  function keystream(seed,len){ let x=seed>>>0||0x9e3779b9; const k=new Uint8Array(len);
+    for(let i=0;i<len;i++){ x^=x<<13; x>>>=0; x^=x>>>17; x^=x<<5; x>>>=0; k[i]=x&255; } return k; }
+  function encode(obj){
+    const data=new TextEncoder().encode(JSON.stringify(obj));
+    const salt=crypto.getRandomValues(new Uint8Array(4));
+    const seed=(salt[0]<<24|salt[1]<<16|salt[2]<<8|salt[3])>>>0, ks=keystream(seed,data.length);
+    const out=new Uint8Array(4+data.length); out.set(salt,0); data.forEach((b,i)=>out[4+i]=b^ks[i]);
+    return PREFIX+b32enc(out);
+  }
+  function decode(code){
+    code=code.trim().replace(/^#/,"").toLowerCase();
+    if(!code.startsWith(PREFIX)) throw 0;
+    const raw=b32dec(code.slice(PREFIX.length)), seed=(raw[0]<<24|raw[1]<<16|raw[2]<<8|raw[3])>>>0;
+    const ks=keystream(seed,raw.length-4), data=raw.slice(4).map((b,i)=>b^ks[i]);
+    const obj=JSON.parse(new TextDecoder().decode(data));
+    if(!Array.isArray(obj.n)||!Array.isArray(obj.t)||obj.n.length!==obj.t.length) throw 0;
+    return obj;
+  }
+
+  // ---------- "this phone is ..." memory (one name per phone per group) ----------
+  const keyFor = code => { let h=2166136261; for(const c of code){ h^=c.charCodeAt(0); h=Math.imul(h,16777619)>>>0; } return "santa-me-"+h.toString(36); };
+  const remember = (code,i) => { try{ localStorage.setItem(keyFor(code),String(i)); }catch(e){} };
+  const recall = code => { try{ const v=localStorage.getItem(keyFor(code)); return v===null?null:Number(v); }catch(e){ return null; } };
+
+  let group=null, groupCode="", pending=-1;
+  function loadGroup(obj,code){
+    group=obj; groupCode=code;
+    $("groupTitle").textContent = obj.g || "Who are you gifting?";
+    const chips=$("memberChips"); chips.innerHTML="";
+    obj.n.forEach(n=>{ const c=document.createElement("span"); c.className="chip"; c.textContent=n; chips.appendChild(c); });
+  }
+
+  // ---------- 2. create ----------
+  function draw(){
+    const err=$("createErr"); err.textContent="";
+    const names=$("names").value.split("\n").map(s=>s.replace(/\s+/g," ").trim()).filter(Boolean);
+    if(names.length<3){ err.textContent="You need at least 3 people"; return; }
+    const seen=new Set();
+    for(const n of names){ const k=norm(n); if(seen.has(k)){ err.textContent="“"+n+"” is on the list twice. Add a last name or nickname to tell them apart!"; return; } seen.add(k); }
+    // Sattolo's algorithm: one big loop, nobody gets themselves
+    const idx=names.map((_,i)=>i), rnd=n=>{ const a=new Uint32Array(1); crypto.getRandomValues(a); return a[0]%n; };
+    for(let i=idx.length-1;i>0;i--){ const j=rnd(i); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+    const t=new Array(names.length);
+    for(let k=0;k<idx.length;k++) t[idx[k]]=idx[(k+1)%idx.length];
+    const obj={g:$("gname").value.trim().slice(0,40), n:names, t};
+    const code=encode(obj);
+    loadGroup(obj,code);
+    try{ history.replaceState(null,"","#"+code); }catch(e){ try{ location.hash=code; }catch(_){} }
+    const framed=(()=>{ try{ return window.top!==window.self; }catch(e){ return true; } })();
+    $("shareIframe").classList.toggle("hidden",!framed);
+    $("shareDirect").classList.toggle("hidden",framed);
+    show("done");
+  }
+  function copyGroupLink(btn){
+    const old=btn.textContent;
+    copyText(location.href.split("#")[0]+"#"+groupCode,
+      ()=>{ btn.textContent="Link copied!"; setTimeout(()=>btn.textContent=old,1800); },
+      ()=>{ btn.textContent="Couldn't copy, please copy the address bar"; });
+  }
+
+  // ---------- 5. lookup ----------
+  function findMe(){
+    const err=$("lookErr"); err.textContent="";
+    const mine=recall(groupCode);
+    if(mine!==null){ openFor(mine); return; }
+    const q=norm($("myname").value);
+    if(!q){ err.textContent="You forgot to type your name"; return; }
+    let i=group.n.findIndex(n=>norm(n)===q);
+    if(i<0){
+      const partial=group.n.map((n,k)=>[n,k]).filter(([n])=>norm(n).split(" ").includes(q)||norm(n).startsWith(q));
+      if(partial.length===1) i=partial[0][1];
+      else { err.textContent = partial.length>1 ? "More than one person matches, please type your full name!" : "Can't find that name in the group. Check the list below."; return; }
+    }
+    pending=i;
+    $("confirmName").textContent="Are you "+group.n[i]+"?";
+    show("confirm");
+  }
+  function confirmMe(){ remember(groupCode,pending); openFor(pending); }
+  function openFor(i){
+    $("hiName").textContent="Hi "+group.n[i]+"!";
+    $("giftee").textContent=group.n[group.t[i]];
+    $("stage").className="stage idle"; $("reveal").classList.remove("show"); $("tapHint").classList.remove("hidden");
+    show("result");
+  }
+
+  // ---------- 6. result ----------
+  function openGift(){
+    const s=$("stage"); if(s.classList.contains("open")) return;
+    s.className="stage open"; $("reveal").classList.add("show"); $("tapHint").classList.add("hidden");
+    setTimeout(confetti,350);
+  }
+  function closeResult(){
+    $("stage").className="stage idle"; $("reveal").classList.remove("show"); $("tapHint").classList.remove("hidden");
+    window.scrollTo(0,0);
+  }
+  function confetti(){
+    for(let i=0;i<55;i++){
+      const c=document.createElement("div"); c.className="confetti";
+      c.style.left=Math.random()*100+"vw"; c.style.opacity=(.35+Math.random()*.65).toFixed(2);
+      c.style.animationDelay=Math.random()*.5+"s"; c.style.animationDuration=(1.7+Math.random()*1.4)+"s";
+      document.body.appendChild(c); setTimeout(()=>c.remove(),4000);
+    }
+  }
+
+  function copyText(text,ok,fail){
+    const fallback=()=>{ const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy")?ok():fail(); }catch(e){ fail(); } ta.remove(); };
+    try{ navigator.clipboard.writeText(text).then(ok,fallback); }catch(e){ fallback(); }
+  }
+
+  // ---------- open from the group link ----------
+  function boot(){
+    const h=(location.hash||"").replace(/^#/,"");
+    if(h){
+      if(h.startsWith(PREFIX)){
+        try{
+          loadGroup(decode(h),h);
+          const mine=recall(h);
+          if(mine!==null && mine<group.n.length) openFor(mine); else show("lookup");
+          return;
+        }catch(e){}
+      }
+      show("bad"); return;
+    }
+    show("home");
+  }
+  window.addEventListener("hashchange",()=>{ if(!$("result").classList.contains("hidden")) return; boot(); });
+  boot();
+</script>
+</body>
+</html>
